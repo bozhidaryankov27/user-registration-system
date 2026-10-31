@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>User Registration</title>
+    <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<nav>
+    <button type="button" onclick="showSection('register')">Register</button>
+    <button type="button" onclick="showSection('login')">Login</button>
+    <button type="button" onclick="showSection('profile')">Profile</button>
+    <button type="button" onclick="logout()">Logout</button>
+</nav>
+
+<section id="register">
+    <h2>Registration</h2>
+
+    <form id="registerForm">
+        <input type="text" id="firstName" placeholder="First Name" required />
+        <input type="text" id="lastName" placeholder="Last Name" required />
+        <input type="email" id="registerEmail" placeholder="Email" required />
+        <input
+                type="password"
+                id="registerPassword"
+                placeholder="Password"
+                required
+        />
+
+        <p id="captchaQuestion"></p>
+        <input
+                type="text"
+                id="captchaAnswer"
+                placeholder="CAPTCHA Answer"
+                required
+        />
+
+        <button type="button" onclick="loadCaptcha()">New CAPTCHA</button>
+        <button type="submit">Register</button>
+    </form>
+</section>
+
+<section id="login" hidden>
+    <h2>Login</h2>
+
+    <form id="loginForm">
+        <input type="email" id="loginEmail" placeholder="Email" required />
+        <input
+                type="password"
+                id="loginPassword"
+                placeholder="Password"
+                required
+        />
+
+        <button type="submit">Login</button>
+    </form>
+</section>
+
+<section id="profile" hidden>
+    <h2>My Profile</h2>
+
+    <form id="profileForm">
+        <input
+                type="text"
+                id="profileFirstName"
+                placeholder="First Name"
+                required
+        />
+        <input
+                type="text"
+                id="profileLastName"
+                placeholder="Last Name"
+                required
+        />
+        <input type="email" id="profileEmail" placeholder="Email" required />
+
+        <button type="submit">Update Profile</button>
+    </form>
+
+    <h3>Change Password</h3>
+
+    <form id="passwordForm">
+        <input
+                type="password"
+                id="currentPassword"
+                placeholder="Current Password"
+                required
+        />
+        <input
+                type="password"
+                id="newPassword"
+                placeholder="New Password"
+                required
+        />
+
+        <button type="submit">Change Password</button>
+    </form>
+
+    <button type="button" onclick="logout()">Logout</button>
+</section>
+
+<p id="message"></p>
+
+<script src="script.js"></script>
+</body>
+</html>
