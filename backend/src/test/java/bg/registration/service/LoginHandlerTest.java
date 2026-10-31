@@ -1,7 +1,6 @@
 package bg.registration.service;
 
 import bg.registration.http.handlers.LoginHandler;
-import bg.registration.http.handlers.RegisterHandler;
 import bg.registration.model.User;
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
@@ -19,10 +18,10 @@ public class LoginHandlerTest {
     @Test
     void shouldRejectGetRequest() throws IOException {
         UserService userService = mock(UserService.class);
-        CaptchaService captchaService = mock(CaptchaService.class);
+        SessionManager sessionManager = mock(SessionManager.class);
         HttpExchange exchange = mock(HttpExchange.class);
 
-        RegisterHandler handler = new RegisterHandler(userService, captchaService);
+        LoginHandler handler = new LoginHandler(sessionManager, userService);
 
         when(exchange.getRequestMethod()).thenReturn("GET");
 
@@ -30,7 +29,7 @@ public class LoginHandlerTest {
 
         verify(exchange).sendResponseHeaders(405, -1);
         verify(exchange).close();
-        verifyNoInteractions(userService, captchaService);
+        verifyNoInteractions(userService, sessionManager);
     }
 
     @Test

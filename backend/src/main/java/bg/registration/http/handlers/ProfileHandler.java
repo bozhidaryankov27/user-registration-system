@@ -91,24 +91,23 @@ public class ProfileHandler implements HttpHandler {
                 String email = node.path("email").asText();
 
                 boolean changePassword = node.path("change_password").asBoolean(false);
-                User updatedUser = userService.updateUser(user.id(), firstName, lastName, email);
 
                 if(changePassword) {
                     String currentPassword = node.path("current_password").asText();
                     String newPassword = node.path("new_password").asText();
 
-                    boolean passChanged = userService.changePassword(updatedUser.id(), currentPassword, newPassword);
+                    boolean passChanged = userService.changePassword(user.id(), currentPassword, newPassword);
 
                     if(!passChanged) {
                         HttpUtils.sendJson(exchange, 400, "{\"error\":\"Password change failed\"}");
                         return;
                     }
-
                 }
+                User updatedUser = userService.updateUser(user.id(), firstName, lastName, email);
 
                 String json = """
                         {
-                        "id":%d
+                        "id":%d,
                         "first_name":"%s",
                         "last_name":"%s",
                         "email":"%s"

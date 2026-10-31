@@ -9,6 +9,8 @@
     <version>1.0-SNAPSHOT</version>
 
     <build>
+        <sourceDirectory>backend/src/main/java</sourceDirectory>
+        <testSourceDirectory>backend/src/test/java</testSourceDirectory>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
