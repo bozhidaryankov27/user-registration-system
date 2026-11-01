@@ -65,6 +65,7 @@
 
 - `User.java` – представя потребителя и неговите данни.
 - `DatabaseManager.java` – осъществява връзката с MySQL базата данни.
+За да стартирате приложението, първо импорт на `schema.sql` в MySQL. След това в `DatabaseManager.java` заменете "DB_USER" и "DB_PASS" със собствените си данни за MySQL. При необходимост променете и JDBC URL адреса.
 
 ### Repository
 
