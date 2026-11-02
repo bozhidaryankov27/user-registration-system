@@ -36,27 +36,26 @@ public class RegisterHandler implements HttpHandler {
 
         ObjectMapper mapper = new ObjectMapper();
 
-        JsonNode node = mapper.readTree(body);
+        try {
+            JsonNode node = mapper.readTree(body);
 
-        String firstName = node.path("first_name").asText();
-        String lastName = node.path("last_name").asText();
-        String email = node.path("email").asText();
-        String password = node.path("password").asText();
+            String firstName = node.path("first_name").asText();
+            String lastName = node.path("last_name").asText();
+            String email = node.path("email").asText();
+            String password = node.path("password").asText();
 
-        String captchaId = node.path("captcha_id").asText();
-        String captchaAnswer = node.path("captcha_answer").asText();
+            String captchaId = node.path("captcha_id").asText();
+            String captchaAnswer = node.path("captcha_answer").asText();
 
-        if(!captchaService.validateCaptcha(captchaId, captchaAnswer)) {
-            String json = """
+            if(!captchaService.validateCaptcha(captchaId, captchaAnswer)) {
+                String json = """
                     {
                     "error":"Invalid CAPTCHA"
                     }
                     """;
-            HttpUtils.sendJson(exchange, 400, json);
-            return;
-        }
-
-        try {
+                HttpUtils.sendJson(exchange, 400, json);
+                return;
+            }
             User user = userService.saveUser(firstName, lastName, email, password);
 
             String json = """
@@ -77,6 +76,7 @@ public class RegisterHandler implements HttpHandler {
                     """;
             HttpUtils.sendJson(exchange, 400, json);
         } catch (RuntimeException e) {
+            e.printStackTrace();
             String json = """
                     {
                     "error":"Internal server error"

@@ -79,7 +79,8 @@ public class ProfileHandlerTest {
                 {
                     "first_name": "Georgi",
                     "last_name": "Filipov",
-                    "email": "gfilipov@gmail.com"
+                    "email": "gfilipov@gmail.com",
+                    "change_password":false
                 }
                 """;
 
@@ -106,6 +107,7 @@ public class ProfileHandlerTest {
         verify(userService).updateUser(
                 1L, "Georgi", "Filipov", "gfilipov@gmail.com"
         );
+
         verify(exchange).sendResponseHeaders(eq(200), anyLong());
     }
 
@@ -159,6 +161,7 @@ public class ProfileHandlerTest {
 
         handler.handle(exchange);
 
+        verify(userService,never()).updateUser(1L, user.firstName(), user.lastName(), user.email());
         verify(userService).changePassword(
                 1L, "Password!1", "NewPassword!1"
         );
@@ -193,5 +196,55 @@ public class ProfileHandlerTest {
 
         verify(exchange).sendResponseHeaders(eq(401), anyLong());
         verify(userRepository, never()).findById(anyLong());
+    }
+
+    @Test
+    void shouldRejectInvalidJson() throws IOException {
+        SessionManager sessionManager = mock(SessionManager.class);
+        UserRepository userRepository = mock(UserRepository.class);
+        UserService userService = mock(UserService.class);
+        HttpExchange exchange = mock(HttpExchange.class);
+
+        ProfileHandler handler = new ProfileHandler(
+                sessionManager, userRepository, userService
+        );
+
+        User user = new User(
+                1L, "Bozhidar", "Yankov",
+                "bojo@gmail.com", "hashedPassword"
+        );
+
+        Headers headers = new Headers();
+        headers.set("Authorisation", "test-token");
+
+        String json = """
+                {
+                    "first_name": "Georgi",
+                    "last_name": "Filipov",
+                    "email": "gfilipov@gmail.com",
+                    "change_password":false
+                
+                """;
+
+        when(exchange.getRequestMethod()).thenReturn("PUT");
+        when(exchange.getRequestHeaders()).thenReturn(headers);
+        when(exchange.getRequestBody()).thenReturn(
+                new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8))
+        );
+
+        when(sessionManager.getUserId("test-token"))
+                .thenReturn(Optional.of(1L));
+        when(userRepository.findById(1L))
+                .thenReturn(Optional.of(user));
+
+
+        when(exchange.getResponseHeaders()).thenReturn(new Headers());
+        when(exchange.getResponseBody()).thenReturn(new ByteArrayOutputStream());
+
+        handler.handle(exchange);
+
+        verifyNoInteractions(userService);
+
+        verify(exchange).sendResponseHeaders(eq(400), anyLong());
     }
 }

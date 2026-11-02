@@ -82,4 +82,78 @@ public class RegisterHandlerTest {
 
         verify(exchange).sendResponseHeaders(eq(201), anyLong());
     }
+
+    @Test
+    void shouldRejectInvalidCaptcha() throws IOException {
+        UserService userService = mock(UserService.class);
+        CaptchaService captchaService = mock(CaptchaService.class);
+        HttpExchange exchange = mock(HttpExchange.class);
+
+        RegisterHandler handler = new RegisterHandler(userService, captchaService);
+
+        String json = """
+                {
+                    "first_name": "Bozhidar",
+                    "last_name": "Yankov",
+                    "email": "bojo@gmail.com",
+                    "password": "Password!1",
+                    "captcha_id": "abc123",
+                    "captcha_answer": "8"
+                }
+                """;
+
+        when(exchange.getRequestMethod()).thenReturn("POST");
+
+        when(exchange.getRequestBody()).thenReturn(
+                new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8))
+        );
+
+        when(captchaService.validateCaptcha("abc123", "8"))
+                .thenReturn(false);
+
+        when(exchange.getResponseBody())
+                .thenReturn(new ByteArrayOutputStream());
+
+        when(exchange.getResponseHeaders()).thenReturn(new Headers());
+
+        handler.handle(exchange);
+
+        verify(captchaService).validateCaptcha("abc123", "8");
+
+        verify(userService, never()).saveUser("Bozhidar", "Yankov", "bojo@gmail.com", "Password!1");
+
+        verify(exchange).sendResponseHeaders(eq(400), anyLong());
+    }
+
+    @Test
+    void shouldRejectInvalidJson() throws IOException {
+        UserService userService = mock(UserService.class);
+        CaptchaService captchaService = mock(CaptchaService.class);
+        HttpExchange exchange = mock(HttpExchange.class);
+
+        RegisterHandler handler = new RegisterHandler(userService, captchaService);
+
+        String json = """
+                    {
+                    "first_name":"Bohidar",
+                    "last_name":"Yankov",
+                    "email": "bojo@gmail.com",
+                    "password": "Password!1",
+                    "captcha_id": "abc123",
+                    "captcha_answer": "8"
+                """;
+
+        when(exchange.getRequestMethod()).thenReturn("POST");
+        when(exchange.getRequestBody()).thenReturn(
+                new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8))
+        );
+
+        when(exchange.getResponseHeaders()).thenReturn(new Headers());
+        when(exchange.getResponseBody()).thenReturn(new ByteArrayOutputStream());
+
+        handler.handle(exchange);
+
+        verifyNoInteractions(userService, captchaService);
+        verify(exchange).sendResponseHeaders(eq(400), anyLong());
+    }
 }
