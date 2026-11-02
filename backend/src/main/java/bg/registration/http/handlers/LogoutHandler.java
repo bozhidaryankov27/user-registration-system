@@ -26,12 +26,21 @@ public class LogoutHandler implements HttpHandler {
         String token = exchange.getRequestHeaders().getFirst("Authorisation");
 
         if(token == null || sessionManager.getUserId(token).isEmpty()) {
-            HttpUtils.sendJson(exchange, 401, "{\"error\":\"Unauthorised\"}");
+            String json = """
+                    {
+                    "error":"Unauthorised"
+                    }
+                    """;
+            HttpUtils.sendJson(exchange, 401, json);
             return;
         }
 
         sessionManager.logout(token);
-
-        HttpUtils.sendJson(exchange, 200, "{\"message\":\"Session expired\"}");
+        String json = """
+                    {
+                    "message":"Session expired"
+                    }
+                    """;
+        HttpUtils.sendJson(exchange, 200, json);
     }
 }

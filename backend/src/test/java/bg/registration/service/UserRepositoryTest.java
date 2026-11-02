@@ -164,4 +164,58 @@ public class UserRepositoryTest {
             verify(ps).executeQuery();
         }
     }
+
+    @Test
+    void shouldReturnEmptyWhenUserIdNotFound() throws SQLException {
+        Connection connection = mock(Connection.class);
+        PreparedStatement ps = mock(PreparedStatement.class);
+        ResultSet rs = mock(ResultSet.class);
+
+        when(connection.prepareStatement(anyString())).thenReturn(ps);
+        when(ps.executeQuery()).thenReturn(rs);
+        when(rs.next()).thenReturn(false);
+
+        try (MockedStatic<DatabaseManager> mockedDatabase =
+                     mockStatic(DatabaseManager.class)) {
+
+            mockedDatabase.when(DatabaseManager::getConnection)
+                    .thenReturn(connection);
+
+            SQLUserRepository repository = new SQLUserRepository();
+
+            Optional<User> result = repository.findById(50L);
+
+            assertTrue(result.isEmpty());
+
+            verify(ps).setLong(1, 50L);
+            verify(ps).executeQuery();
+        }
+    }
+
+    @Test
+    void shouldReturnEmptyWhenEmailNotFound() throws SQLException {
+        Connection connection = mock(Connection.class);
+        PreparedStatement ps = mock(PreparedStatement.class);
+        ResultSet rs = mock(ResultSet.class);
+
+        when(connection.prepareStatement(anyString())).thenReturn(ps);
+        when(ps.executeQuery()).thenReturn(rs);
+        when(rs.next()).thenReturn(false);
+
+        try (MockedStatic<DatabaseManager> mockedDatabase =
+                     mockStatic(DatabaseManager.class)) {
+
+            mockedDatabase.when(DatabaseManager::getConnection)
+                    .thenReturn(connection);
+
+            SQLUserRepository repository = new SQLUserRepository();
+
+            Optional<User> result = repository.findByEmail("bojidaryankov2006@gmail.com");
+
+            assertTrue(result.isEmpty());
+
+            verify(ps).setString(1, "bojidaryankov2006@gmail.com");
+            verify(ps).executeQuery();
+        }
+    }
 }

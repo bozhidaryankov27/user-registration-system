@@ -125,11 +125,6 @@ public class ProfileHandlerTest {
                 "bojo@gmail.com", "hashedPassword"
         );
 
-        User updatedUser = new User(
-                1L, "Georgi", "Filipov",
-                "gfilipov@gmail.com", "hashedPassword"
-        );
-
         Headers headers = new Headers();
         headers.set("Authorisation", "test-token");
 
@@ -155,10 +150,6 @@ public class ProfileHandlerTest {
         when(userRepository.findById(1L))
                 .thenReturn(Optional.of(user));
 
-        when(userService.updateUser(
-                1L, "Georgi", "Filipov", "gfilipov@gmail.com"
-        )).thenReturn(updatedUser);
-
         when(userService.changePassword(
                 1L, "Password!1", "NewPassword!1"
         )).thenReturn(true);
@@ -168,14 +159,39 @@ public class ProfileHandlerTest {
 
         handler.handle(exchange);
 
-        verify(userService).updateUser(
-                1L, "Georgi", "Filipov", "gfilipov@gmail.com"
-        );
-
         verify(userService).changePassword(
                 1L, "Password!1", "NewPassword!1"
         );
 
         verify(exchange).sendResponseHeaders(eq(200), anyLong());
+    }
+
+    @Test
+    void shouldRejectInvalidToken() throws IOException {
+        SessionManager sessionManager = mock(SessionManager.class);
+        UserRepository userRepository = mock(UserRepository.class);
+        UserService userService = mock(UserService.class);
+        HttpExchange exchange = mock(HttpExchange.class);
+
+        ProfileHandler handler = new ProfileHandler(
+                sessionManager, userRepository, userService
+        );
+
+        Headers headers = new Headers();
+        headers.set("Authorisation", "invalid-token");
+
+        when(exchange.getRequestMethod()).thenReturn("GET");
+        when(exchange.getRequestHeaders()).thenReturn(headers);
+
+        when(sessionManager.getUserId("invalid-token"))
+                .thenReturn(Optional.empty());
+
+        when(exchange.getResponseHeaders()).thenReturn(new Headers());
+        when(exchange.getResponseBody()).thenReturn(new ByteArrayOutputStream());
+
+        handler.handle(exchange);
+
+        verify(exchange).sendResponseHeaders(eq(401), anyLong());
+        verify(userRepository, never()).findById(anyLong());
     }
 }

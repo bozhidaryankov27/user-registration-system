@@ -4,6 +4,7 @@ import bg.registration.model.User;
 import bg.registration.repository.UserRepository;
 import bg.registration.service.SessionManager;
 import bg.registration.service.UserService;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpExchange;
@@ -48,17 +49,22 @@ public class ProfileHandler implements HttpHandler {
         }
 
         long id = userId.get();
-        Optional<User> findUser = userRepository.findById(id);
 
-        if(findUser.isEmpty()) {
-            HttpUtils.sendJson(exchange, 404,  "{\"error:\"User not found\"}");
-            return;
-        }
+        try{
+            Optional<User> findUser = userRepository.findById(id);
 
-        User user = findUser.get();
-        if("GET".equals(exchange.getRequestMethod())) {
-            try {
+            if(findUser.isEmpty()) {
                 String json = """
+                        "error":"User not found"
+                        """;
+                HttpUtils.sendJson(exchange, 404,  json);
+                return;
+            }
+
+            User user = findUser.get();
+            if("GET".equals(exchange.getRequestMethod())) {
+                try {
+                    String json = """
                         {
                         "id":"%d",
                         "first_name":"%s",
@@ -67,45 +73,56 @@ public class ProfileHandler implements HttpHandler {
                         }
                         """.formatted(user.id(), user.firstName(), user.lastName(), user.email());
 
-                HttpUtils.sendJson(exchange, 200, json);
-            } catch (IllegalArgumentException e) {
-                String json = """
+                    HttpUtils.sendJson(exchange, 200, json);
+                } catch (IllegalArgumentException e) {
+                    String json = """
                         {
                         "error":"Invalid id!"
                         }
                         """;
 
-                HttpUtils.sendJson(exchange, 401, json);
+                    HttpUtils.sendJson(exchange, 401, json);
 
-            }
-        } else if("PUT".equals(exchange.getRequestMethod())) {
-            try{
-                String body = new String(exchange.getRequestBody().readAllBytes(),
-                        StandardCharsets.UTF_8);
-
-                ObjectMapper mapper = new ObjectMapper();
-                JsonNode node = mapper.readTree(body);
-
-                String firstName = node.path("first_name").asText();
-                String lastName = node.path("last_name").asText();
-                String email = node.path("email").asText();
-
-                boolean changePassword = node.path("change_password").asBoolean(false);
-
-                if(changePassword) {
-                    String currentPassword = node.path("current_password").asText();
-                    String newPassword = node.path("new_password").asText();
-
-                    boolean passChanged = userService.changePassword(user.id(), currentPassword, newPassword);
-
-                    if(!passChanged) {
-                        HttpUtils.sendJson(exchange, 400, "{\"error\":\"Password change failed\"}");
-                        return;
-                    }
                 }
-                User updatedUser = userService.updateUser(user.id(), firstName, lastName, email);
+            } else if("PUT".equals(exchange.getRequestMethod())) {
+                try{
+                    String body = new String(exchange.getRequestBody().readAllBytes(),
+                            StandardCharsets.UTF_8);
 
-                String json = """
+                    ObjectMapper mapper = new ObjectMapper();
+                    JsonNode node = mapper.readTree(body);
+
+                    String firstName = node.path("first_name").asText();
+                    String lastName = node.path("last_name").asText();
+                    String email = node.path("email").asText();
+
+                    boolean changePassword = node.path("change_password").asBoolean(false);
+
+                    if(changePassword) {
+                        String currentPassword = node.path("current_password").asText();
+                        String newPassword = node.path("new_password").asText();
+
+                        boolean passChanged = userService.changePassword(user.id(), currentPassword, newPassword);
+
+                        if(!passChanged) {
+                            String json = """
+                                {
+                                "error":"Password change failed"
+                                }
+                                """;
+                            HttpUtils.sendJson(exchange, 400, json);
+                            return;
+                        }
+
+                        String json = """
+                                "message":"Password changed successfully"
+                                """;
+
+                        HttpUtils.sendJson(exchange, 200, json);
+                    }
+                    User updatedUser = userService.updateUser(user.id(), firstName, lastName, email);
+
+                    String json = """
                         {
                         "id":%d,
                         "first_name":"%s",
@@ -113,16 +130,31 @@ public class ProfileHandler implements HttpHandler {
                         "email":"%s"
                         }
                         """.formatted(updatedUser.id(),updatedUser.firstName(),updatedUser.lastName(),updatedUser.email());
-                HttpUtils.sendJson(exchange,200,json);
+                    HttpUtils.sendJson(exchange,200,json);
 
-            } catch(IllegalArgumentException e) {
-                String json = """
+                } catch(IllegalArgumentException e) {
+                    String json = """
                         {
                         "error":"Invalid data"
                         }
                         """;
-                HttpUtils.sendJson(exchange,400,json);
+                    HttpUtils.sendJson(exchange,400,json);
+                } catch (JsonProcessingException e) {
+                    String json = """
+                        {
+                        "error":"Invalid json"
+                        }
+                        """;
+                    HttpUtils.sendJson(exchange, 400, json);
+                }
             }
+        } catch (RuntimeException e) {
+            String json = """
+                {
+                "error":"Internal server error"
+                }
+                """;
+            HttpUtils.sendJson(exchange, 500, json);
         }
     }
 }

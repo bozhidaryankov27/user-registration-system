@@ -3,6 +3,7 @@ package bg.registration.http.handlers;
 import bg.registration.model.User;
 import bg.registration.service.CaptchaService;
 import bg.registration.service.UserService;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpExchange;
@@ -47,9 +48,11 @@ public class RegisterHandler implements HttpHandler {
 
         if(!captchaService.validateCaptcha(captchaId, captchaAnswer)) {
             String json = """
+                    {
                     "error":"Invalid CAPTCHA"
+                    }
                     """;
-            HttpUtils.sendJson(exchange, 401, json);
+            HttpUtils.sendJson(exchange, 400, json);
             return;
         }
 
@@ -70,6 +73,20 @@ public class RegisterHandler implements HttpHandler {
             String json = """
                     {
                     "error":"Invalid data"
+                    }
+                    """;
+            HttpUtils.sendJson(exchange, 400, json);
+        } catch (RuntimeException e) {
+            String json = """
+                    {
+                    "error":"Internal server error"
+                    }
+                    """;
+            HttpUtils.sendJson(exchange, 500, json);
+        } catch (JsonProcessingException e) {
+            String json = """
+                    {
+                    "error":"Invalid json"
                     }
                     """;
             HttpUtils.sendJson(exchange, 400, json);

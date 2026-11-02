@@ -74,10 +74,14 @@ public class UserServiceTest {
                 1L, "Bozhidar", "Yankov", "bojo@gmail.com", hashedPassword
         );
 
+        when(repository.findByEmail(existingUser.email()))
+                .thenReturn(Optional.of(existingUser));
+
         String testPassword = "OtherPass1!1!";
         Optional<User> result = userService.loginUser(existingUser.email(), testPassword);
 
         assertTrue(result.isEmpty());
+        verify(repository).findByEmail(existingUser.email());
     }
 
     @Test
@@ -92,9 +96,16 @@ public class UserServiceTest {
 
         when(repository.findById(existingUser.id())).thenReturn(Optional.of(existingUser));
 
-        User updatedUser = userService.updateUser(existingUser.id(), firstName, lastName, email);
+        User updatedUser = new User(existingUser.id(), firstName, lastName, email, existingUser.password());
 
-        assertNotEquals(existingUser, updatedUser);
+        when(repository.update(any(User.class))).thenReturn(updatedUser);
+
+        User result = userService.updateUser(existingUser.id(), firstName, lastName, email);
+
+        assertEquals(updatedUser, result);
+
+        verify(repository).findById(updatedUser.id());
+        verify(repository).update(updatedUser);
     }
 
     @Test
@@ -111,5 +122,92 @@ public class UserServiceTest {
         assertTrue(userService.changePassword(existingUser.id(), password, newPassword));
     }
 
+    @Test
+    void shouldRejectNoExistEmail() {
+        User existingUser = new User(
+                1L, "Bozhidar", "Yankov", "bojo@gmail.com", "Pass1!1!"
+        );
+
+        when(repository.findByEmail(existingUser.email())).thenReturn(Optional.empty());
+
+        Optional<User> user = userService.loginUser(existingUser.email(), existingUser.password());
+
+        assertTrue(user.isEmpty());
+        verify(repository).findByEmail(existingUser.email());
+    }
+
+    @Test
+    void shouldRejectInvalidEmail() {
+        assertThrows(IllegalArgumentException.class, () ->
+                userService.saveUser("Bzohidar", "Yankov", "bojo.gmail.com", "Bpass!111")
+        );
+    }
+
+    @Test
+    void shouldRejectInvalidPass() {
+        assertThrows(IllegalArgumentException.class, () ->
+                userService.saveUser("Bzohidar", "Yankov", "bojo@gmail.com", "1")
+        );
+    }
+
+    @Test
+    void shouldRejectDuplicateUpdateEmail() {
+        User existingUser = new User(
+                1L, "Bozhidar", "Yankov", "bojo@gmail.com", "Pass1!1!"
+        );
+
+        User anotherUser = new User(2L, "Georgi", "Ivanov", "gosho@gmail.com", "Pass2122");
+
+        when(repository.findById(1L)).thenReturn(Optional.of(existingUser));
+
+        when(repository.findByEmail(anotherUser.email())).thenReturn(Optional.of(anotherUser));
+
+        assertThrows(IllegalArgumentException.class, () ->
+                userService.updateUser(1,"Bozhidar", "Yankov", "gosho@gmail.com")
+        );
+
+        verify(repository, never()).update(any(User.class));
+    }
+
+    @Test
+    void shouldNotChangePassword() {
+        String password = "Pass1!1!";
+        String hashedPassword = BCrypt.hashpw(password, BCrypt.gensalt());
+
+        User existingUser = new User(1L, "Bozhidar", "Yankv", "bojo@abv.bg", hashedPassword);
+
+        String newPass = "Pass11111";
+        String wrongPass = "WrongPass1!1!";
+
+        when(repository.findById(1)).thenReturn(Optional.of(existingUser));
+
+        assertFalse(userService.changePassword(1, wrongPass, newPass));
+        verify(repository, never()).update(any(User.class));
+    }
+
+    @Test
+    void shouldRejectInvalidNewPassword() {
+        String password = "Pass1!1!";
+        String hashedPassword = BCrypt.hashpw(password, BCrypt.gensalt());
+
+        User existingUser = new User(1L, "Bozhidar", "Yankv", "bojo@abv.bg", hashedPassword);
+
+        String newPass = "B1";
+
+        when(repository.findById(1)).thenReturn(Optional.of(existingUser));
+
+        assertThrows(IllegalArgumentException.class, () -> userService.changePassword(1L, password, newPass));
+
+        verify(repository,never()).update(any(User.class));
+    }
+
+    @Test
+    void shouldRejectUpdateWithInvalidName() {
+        assertThrows(IllegalArgumentException.class, () ->
+                userService.updateUser(1L, "", "Yankov", "bojo@gmail.com")
+        );
+
+        verify(repository, never()).update(any(User.class));
+    }
 
 }
